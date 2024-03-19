@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <input type="file" id="file">
+    <script>
+        const fileEle = document.getElementById('file');
+        const chunksFunc = (file, size=1024 * 1024 * 10) => {
+            const chunks = [];
+            // for(let start = 0, end = size; start < file.size; start = end, end = start + size){
+            //     chunks.push(file.slice(start, end));
+            // }
+            for(let start = 0; start < file.size; start += size){
+                chunks.push(file.slice(start, start+size));
+            }
+            return chunks;
+        }
+        const uploadFiles = (chunks) => {
+            //1、批量上传切片，promise.all([fetch1, fetch2, fetch3, ...]);
+            //2、formData方式去上传file, 用标识来进行标记顺序
+            // 3、后端根据标识顺序进行拼接
+            console.log('chunks', chunks);
+            let list = [];
+            for(let i = 0; i < chunks.length; i++){
+                const formData = new FormData();
+                formData.append('index', i);
+                formData.append('fileName', 'xiezhen');
+                formData.append('file', chunks[i]);
+                console.log('formData', formData, 'index:',formData.get('index'));
+                list.push(fetch('http://localhost:3000/upload', {
+                    method: 'POST',
+                    body: formData
+                }))
+                
+            }
+            Promise.all(list).then(res => {
+                console.log('resAll:', res);
+                // 切片上传成功后通知后端合并一个完整的文件
+                fetch('http://localhost:3000/merge', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        fileName: 'xiezhen'
+                    })
+                }).then(res => {
+                    console.log('finish', res);
+                })
+            });         
+        }
+        fileEle.addEventListener('change', (e) => {
+            const file = e.target.files[0];// file是一个file对象，底层是继承blob的，需要调用blob的slice方法进行切割
+            let chunks = chunksFunc(file);// 把每个分片都传递给后端
+            uploadFiles(chunks);
+            console.log('file', file, chunks);
+        });
+    </script>
+</body>
+</html>
