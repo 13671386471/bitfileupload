@@ -7,3 +7,5 @@
     http-server -p 8080
 
     后端服务使用 nodemon index.js 启动服务
+
+    .http文件的运行需要vscode安装插件  REST Client 
